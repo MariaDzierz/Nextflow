@@ -1,0 +1,94 @@
+
+nextflow.enable.dsl=2
+ 
+params.input = "/Users/mariadzierzkowska/R_norvegicus*.vcf_.txt"
+
+input_ch = Channel.fromPath(params.input)
+
+process NUM_LINES {
+
+	publishDir '/Users/mariadzierzkowska/wyniki_nextflow', pattern: "*.txt"
+	
+	input:
+	path read
+
+	output:
+	path ("lines_count.txt"), emit: lines_count
+	
+	script:
+	"""
+	wc -l ${read} > lines_count.txt
+	"""
+}
+
+process FILTER_CHR11 {
+
+	publishDir '/Users/mariadzierzkowska/wyniki_nextflow', pattern: "*.txt"
+	
+	input:
+	path read
+
+	output:
+	path ("output.txt"), emit: output
+
+	script:
+	"""
+	awk '/Chr11/{print \$0}' ${read} > output.txt
+	"""
+}
+
+process START_WITH {
+
+	publishDir '/Users/mariadzierzkowska/wyniki_nextflow', pattern: "*.txt"
+
+	input:
+	path read
+
+	output:
+	path ("select.txt"), emit: select
+
+	script:
+	"""
+	awk '\$2 ~/^1/{print \$0}' ${read} > select.txt
+	"""
+}
+
+process SHOW_FILE {
+
+	publishDir '/Users/mariadzierzkowska/wyniki_nextflow', pattern: "*.txt"
+
+	input:
+	path read
+
+	output:
+	path ("show.txt"), emit: show
+
+	script:
+	"""
+	cat ${read} > show.txt
+	"""
+}
+
+process SORT_LINES {
+
+	publishDir '/Users/mariadzierzkowska/wyniki_nextflow', pattern: "*.txt"
+
+	input:
+	path read
+
+	output:
+	path ("sort.txt"), emit: sort
+
+	script:
+	"""
+	sort ${read} > sort.txt
+	"""
+}
+
+workflow{
+	SHOW_FILE(input_ch)
+	FILTER_CHR11(SHOW_FILE.out.show)
+	START_WITH(FILTER_CHR11.out.output)
+	SORT_LINES(START_WITH.out.select)
+	NUM_LINES(SORT_LINES.out.sort) 
+}
